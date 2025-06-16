@@ -1,10 +1,10 @@
-Ôªø#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#include "intervencije.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "intervencije.h"
 
-static int broj = 0; //broj intervenija
+int broj = 0;
 
 int izbornik() {
     int uvjet = 0;
@@ -14,31 +14,30 @@ int izbornik() {
     do {
         printf("\n===== IZBORNIK =====\n");
         printf("1. Dodaj intervenciju\n");
-        printf("2. A≈æuriraj intervenciju\n");
+        printf("2. Azuriraj intervenciju\n");
         printf("3. Ispis intervencija\n");
         printf("4. Pretraga (ID / Vrsta / Lokacija)\n");
         printf("5. Sortiraj po trajanju\n");
-        printf("6. Obri≈°i intervenciju\n");
-        printf("7. Izlaz\n");
+        printf("6. Obrisi intervenciju\n");
+        printf("7. Obrisi datoteku\n");
+		printf("8. Izlaz\n");
         printf("Odabir: ");
         scanf("%d", &uvjet);
-        getchar(); // flush enter
+        getchar();  // ciscenje novog reda iz buffer-a
 
-        switch (uvjet) {
+
+        switch (uvjet) {   
         case 1:
             dodaj_intervenciju();
             break;
-
         case 2:
             azuriraj_intervenciju();
             break;
-
         case 3:
             ispis_intervencije();
             break;
-
         case 4:
-            brojIntervencija = ucitaj_intervencije(&polje);
+            polje = ucitaj_intervencije(&brojIntervencija);
             if (brojIntervencija == 0) {
                 printf("Nema intervencija za pretragu.\n");
                 break;
@@ -53,9 +52,8 @@ int izbornik() {
             else printf("Nepoznata opcija.\n");
             free(polje);
             break;
-
         case 5:
-            brojIntervencija = ucitaj_intervencije(&polje);
+            polje = ucitaj_intervencije(&brojIntervencija);
             if (brojIntervencija == 0) {
                 printf("Nema intervencija za sortiranje.\n");
                 break;
@@ -63,44 +61,43 @@ int izbornik() {
             sortiranje_po_trajanju(polje, brojIntervencija);
             free(polje);
             break;
-
         case 6:
             brisanje_intervencije();
             break;
-
         case 7:
+            obrisi_datoteku();
+            break;
+        case 8:
             printf("Izlazak iz programa.\n");
             break;
-
         default:
             printf("Nepoznata opcija.\n");
         }
-
     } while (uvjet != 7);
 
     return 0;
 }
 
 void kreirajdatoteku() {
-    FILE* fp = fopen("intervencije.bin", "wb");
-    if (fp == NULL) {
-        perror("Pogreska pri kreiranju datoteke");
+    FILE* fp = fopen("intervencije.txt", "w");
+    if (!fp) {
+        perror("Greöka pri kreiranju datoteke");
         return;
     }
-    broj = 0;
-    fwrite(&broj, sizeof(int), 1, fp);
+    fprintf(fp, "0\n");
     fclose(fp);
 }
 
 void dodaj_intervenciju() {
-    FILE* fp = fopen("intervencije.bin", "rb+");
-    if (fp == NULL) {
-        perror("Greska pri otvaranju datoteke");
+    static int lokalniBrojac = 0;
+
+    FILE* fp = fopen("intervencije.txt", "r+");
+    if (!fp) {
+        perror("Greöka pri otvaranju datoteke");
         return;
     }
 
-    fread(&broj, sizeof(int), 1, fp);
-    fseek(fp, 0, SEEK_END);            
+    fscanf(fp, "%d\n", &broj);
 
     INTERVENCIJE nova;
 
@@ -120,11 +117,11 @@ void dodaj_intervenciju() {
     fgets(nova.vrijeme, sizeof(nova.vrijeme), stdin);
     nova.vrijeme[strcspn(nova.vrijeme, "\n")] = 0;
 
-    printf("Unesite trajanje intervencije (u minutama): ");
+    printf("Unesite trajanje (min): ");
     scanf("%d", &nova.trajanje);
     getchar();
 
-    printf("Unesite lokaciju intervencije: ");
+    printf("Unesite lokaciju: ");
     fgets(nova.lokacija, sizeof(nova.lokacija), stdin);
     nova.lokacija[strcspn(nova.lokacija, "\n")] = 0;
 
@@ -136,101 +133,138 @@ void dodaj_intervenciju() {
     scanf("%d", &nova.brojVozila);
     getchar();
 
-    fwrite(&nova, sizeof(INTERVENCIJE), 1, fp);
+    // pomice pokazivac na kraj datoteke i upisuje novu intervenciju
+    fseek(fp, 0, SEEK_END);
+    fprintf(fp, "%d|%s|%s|%s|%d|%s|%d|%d\n",
+        nova.id, nova.vrsta, nova.datum, nova.vrijeme,
+        nova.trajanje, nova.lokacija, nova.brojVatrogasaca, nova.brojVozila);
 
+    // azuriranje broja intervencija u datoteci s tim  da se broj intervencija poveca za 1
     broj++;
     fseek(fp, 0, SEEK_SET);
-    fwrite(&broj, sizeof(int), 1, fp);
+    fprintf(fp, "%d\n", broj);
 
     fclose(fp);
 
-    printf("Intervencija uspjesno dodana.\n");
+    lokalniBrojac++;  // poveca se svaki put kad se doda nova intervencija
+    printf("Intervencija uspjeöno dodana. (Lokalno dodano ukupno: %d)\n", lokalniBrojac);
 }
 
-INTERVENCIJE* ucitaj_intervencije(int* broj) {
-    FILE* fp = fopen("intervencije.bin", "rb");
+
+INTERVENCIJE* ucitaj_intervencije(int* brojOut) {
+    FILE* fp = fopen("intervencije.txt", "r");
     if (!fp) {
-        *broj = 0;
+        *brojOut = 0;
         return NULL;
     }
 
-    fread(broj, sizeof(int), 1, fp);
-    if (*broj == 0) {
+    if (fscanf(fp, "%d\n", brojOut) != 1) {
+        *brojOut = 0;
         fclose(fp);
         return NULL;
     }
 
-    INTERVENCIJE* polje = malloc(*broj * sizeof(INTERVENCIJE));
+    if (*brojOut == 0) {
+        fclose(fp);
+        return NULL;
+    }
+
+    INTERVENCIJE* polje = malloc(*brojOut * sizeof(INTERVENCIJE));
     if (!polje) {
-        perror("Greska pri alokaciji memorije");
+        perror("Alokacija memorije neuspjeöna");
         fclose(fp);
-        *broj = 0;
+        *brojOut = 0;
         return NULL;
     }
 
-    fread(polje, sizeof(INTERVENCIJE), *broj, fp);
+    for (int i = 0; i < *brojOut; i++) {
+        char buffer[256];
+        if (!fgets(buffer, sizeof(buffer), fp)) {
+            *brojOut = i;
+            break;
+        }
+
+        // Format: id|vrsta|datum|vrijeme|trajanje|lokacija|brojVatrogasaca|brojVozila
+        char* token = strtok(buffer, "|");
+        if (!token) continue;
+        polje[i].id = atoi(token);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(polje[i].vrsta, token, sizeof(polje[i].vrsta));
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(polje[i].datum, token, sizeof(polje[i].datum));
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(polje[i].vrijeme, token, sizeof(polje[i].vrijeme));
+
+        token = strtok(NULL, "|");
+        if (token) polje[i].trajanje = atoi(token);
+
+        token = strtok(NULL, "|");
+        if (token) strncpy(polje[i].lokacija, token, sizeof(polje[i].lokacija));
+
+        token = strtok(NULL, "|");
+        if (token) polje[i].brojVatrogasaca = atoi(token);
+
+        token = strtok(NULL, "|");
+        if (token) polje[i].brojVozila = atoi(token);
+
+        // Ukloni newline znakove s kraja stringova
+        polje[i].vrsta[strcspn(polje[i].vrsta, "\n")] = 0;
+        polje[i].datum[strcspn(polje[i].datum, "\n")] = 0;
+        polje[i].vrijeme[strcspn(polje[i].vrijeme, "\n")] = 0;
+        polje[i].lokacija[strcspn(polje[i].lokacija, "\n")] = 0;
+    }
+
     fclose(fp);
     return polje;
 }
 
 void azuriraj_intervenciju() {
-    FILE* fp = fopen("intervencije.bin", "rb+");
-    if (!fp) {
-        perror("Greska pri otvaranju datoteke");
+    int brojIntervencija;
+    INTERVENCIJE* polje = ucitaj_intervencije(&brojIntervencija);
+    if (!polje || brojIntervencija == 0) {
+        printf("Nema intervencija za aûuriranje.\n");
+        free(polje);
         return;
     }
 
-    fread(&broj, sizeof(int), 1, fp);
-    if (broj == 0) {
-        printf("Nema intervencija za azurirati.\n");
-        fclose(fp);
-        return;
-    }
-
-    INTERVENCIJE* polje = malloc(broj * sizeof(INTERVENCIJE));
-    if (!polje) {
-        perror("Greska pri alokaciji memorije");
-        fclose(fp);
-        return;
-    }
-
-    fread(polje, sizeof(INTERVENCIJE), broj, fp);
-
-    int trazeniID;
-    printf("Unesite ID intervencije koju zelite azurirati: ");
-    scanf("%d", &trazeniID);
+    int id;
+    printf("Unesite ID intervencije za aûuriranje: ");
+    scanf("%d", &id);
     getchar();
 
-    int i, pronadeno = 0;
-    for (i = 0; i < broj; i++) {
-        if (polje[i].id == trazeniID) {
-            pronadeno = 1;
+    int found = 0;
+    for (int i = 0; i < brojIntervencija; i++) {
+        if (polje[i].id == id) {
+            found = 1;
 
-            printf("Unesite novu vrstu intervencije: ");
+            printf("Nova vrsta: ");
             fgets(polje[i].vrsta, sizeof(polje[i].vrsta), stdin);
             polje[i].vrsta[strcspn(polje[i].vrsta, "\n")] = 0;
 
-            printf("Unesite novi datum (DD.MM.GGGG): ");
+            printf("Novi datum: ");
             fgets(polje[i].datum, sizeof(polje[i].datum), stdin);
             polje[i].datum[strcspn(polje[i].datum, "\n")] = 0;
 
-            printf("Unesite novo vrijeme (HH:MM): ");
+            printf("Novo vrijeme: ");
             fgets(polje[i].vrijeme, sizeof(polje[i].vrijeme), stdin);
             polje[i].vrijeme[strcspn(polje[i].vrijeme, "\n")] = 0;
 
-            printf("Unesite novo trajanje (u minutama): ");
+            printf("Novo trajanje (min): ");
             scanf("%d", &polje[i].trajanje);
             getchar();
 
-            printf("Unesite novu lokaciju: ");
+            printf("Nova lokacija: ");
             fgets(polje[i].lokacija, sizeof(polje[i].lokacija), stdin);
             polje[i].lokacija[strcspn(polje[i].lokacija, "\n")] = 0;
 
-            printf("Unesite novi broj vatrogasaca: ");
+            printf("Novi broj vatrogasaca: ");
             scanf("%d", &polje[i].brojVatrogasaca);
             getchar();
 
-            printf("Unesite novi broj vozila: ");
+            printf("Novi broj vozila: ");
             scanf("%d", &polje[i].brojVozila);
             getchar();
 
@@ -238,212 +272,210 @@ void azuriraj_intervenciju() {
         }
     }
 
-    if (!pronadeno) {
-        printf("Intervencija s ID %d nije pronadena.\n", trazeniID);
+    if (!found) {
+        printf("Intervencija s ID %d nije pronaena.\n", id);
     }
     else {
-        // Upisujemo promijenjeni zapis natrag u datoteku
-        fseek(fp, sizeof(int), SEEK_SET);
-        fwrite(polje, sizeof(INTERVENCIJE), broj, fp);
-        printf("Intervencija azurirana.\n");
+        FILE* fp = fopen("intervencije.txt", "w");
+        if (!fp) {
+            perror("Greöka pri otvaranju datoteke");
+            free(polje);
+            return;
+        }
+
+        fprintf(fp, "%d\n", brojIntervencija);
+        for (int i = 0; i < brojIntervencija; i++) {
+            fprintf(fp, "%d|%s|%s|%s|%d|%s|%d|%d\n",
+                polje[i].id, polje[i].vrsta, polje[i].datum, polje[i].vrijeme,
+                polje[i].trajanje, polje[i].lokacija, polje[i].brojVatrogasaca, polje[i].brojVozila);
+        }
+        fclose(fp);
+        printf("Intervencija aûurirana.\n");
     }
 
     free(polje);
-    fclose(fp);
 }
 
 void ispis_intervencije() {
-    FILE* fp = fopen("intervencije.bin", "rb");
-    if (!fp) {
-        perror("Greska pri otvaranju datoteke");
-        return;
-    }
-
-    fread(&broj, sizeof(int), 1, fp);
-    if (broj == 0) {
-        printf("Nema unesenih intervencija za ispis.\n");
-        fclose(fp);
-        return;
-    }
-
-    INTERVENCIJE* polje = malloc(broj * sizeof(INTERVENCIJE));
+    INTERVENCIJE* polje = ucitaj_intervencije(&broj);
     if (!polje) {
-        perror("Greska pri alokaciji memorije");
-        fclose(fp);
+        printf("Nema intervencija za ispis.\n");
         return;
     }
-
-    fread(polje, sizeof(INTERVENCIJE), broj, fp);
 
     for (int i = 0; i < broj; i++) {
-        printf("Intervencija #%d\n", i + 1);
-        printf("ID: %d\n", polje[i].id);
-        printf("Vrsta: %s\n", polje[i].vrsta);
-        printf("Datum: %s\n", polje[i].datum);
-        printf("Vrijeme: %s\n", polje[i].vrijeme);
-        printf("Trajanje: %d minuta\n", polje[i].trajanje);
-        printf("Lokacija: %s\n", polje[i].lokacija);
-        printf("Broj vatrogasaca: %d\n", polje[i].brojVatrogasaca);
-        printf("Broj vozila: %d\n", polje[i].brojVozila);
-        printf("--------------------------\n");
+        printf("\n--- Intervencija #%d ---\n", i + 1);
+        printf("ID: %d\nVrsta: %s\nDatum: %s\nVrijeme: %s\nTrajanje: %d min\nLokacija: %s\nVatrogasaca: %d\nVozila: %d\n",
+            polje[i].id, polje[i].vrsta, polje[i].datum, polje[i].vrijeme,
+            polje[i].trajanje, polje[i].lokacija, polje[i].brojVatrogasaca, polje[i].brojVozila);
     }
 
     free(polje);
-    fclose(fp);
 }
 
 void brisanje_intervencije() {
-    FILE* fp = fopen("intervencije.bin", "rb");
-    if (!fp) {
-        printf("Datoteka ne postoji.\n");
-        return;
-    }
-
     int brojIntervencija;
-    fread(&brojIntervencija, sizeof(int), 1, fp);
-    if (brojIntervencija == 0) {
-        printf("Nema intervencija za brisanje.\n");
-        fclose(fp);
+    INTERVENCIJE* polje = ucitaj_intervencije(&brojIntervencija);
+    if (!polje || brojIntervencija == 0) {
+        printf("Datoteka ne postoji ili nema intervencija.\n");
+        free(polje);
         return;
     }
-
-    INTERVENCIJE* niz = malloc(brojIntervencija * sizeof(INTERVENCIJE));
-    fread(niz, sizeof(INTERVENCIJE), brojIntervencija, fp);
-    fclose(fp);
 
     int id, noviBroj = 0;
     printf("Unesite ID za brisanje: ");
     scanf("%d", &id);
+    getchar();
 
-    for (int i = 0; i < brojIntervencija; i++) {
-        if (niz[i].id != id)
-            niz[noviBroj++] = niz[i];
-    }
-
-    if (noviBroj == brojIntervencija) {
-        printf("ID nije pronaden.\n");
-        free(niz);
+    INTERVENCIJE* noviPolje = malloc(brojIntervencija * sizeof(INTERVENCIJE));
+    if (!noviPolje) {
+        perror("Alokacija memorije neuspjeöna");
+        free(polje);
         return;
     }
 
-    fp = fopen("intervencije.bin", "wb");
-    fwrite(&noviBroj, sizeof(int), 1, fp);
-    fwrite(niz, sizeof(INTERVENCIJE), noviBroj, fp);
-    fclose(fp);
-    free(niz);
-
-    printf("Intervencija je obrisana.\n");
-}
-
-void pretraga_po_ID(INTERVENCIJE* polje, int broj) {
-    int trazeniID, brojac = 0;
-    printf("Upisite ID intervencije koju zelite pronaci:\n");
-    scanf("%d", &trazeniID);
-    getchar();
-
-    for (int i = 0; i < broj; i++) {
-        if (polje[i].id == trazeniID) {
-            printf("\nIntervencija je pronaƒëena!\n\n");
-            printf("ID: %d\tVrsta: %s\tDatum: %s\tVrijeme: %s\tTrajanje: %d min\tLokacija: %s\tBroj vatrogasaca: %d\tBroj vozila: %d\n\n",
-                polje[i].id,
-                polje[i].vrsta,
-                polje[i].datum,
-                polje[i].vrijeme,
-                polje[i].trajanje,
-                polje[i].lokacija,
-                polje[i].brojVatrogasaca,
-                polje[i].brojVozila);
-            brojac++;
+    for (int i = 0; i < brojIntervencija; i++) {
+        if (polje[i].id != id) {
+            noviPolje[noviBroj++] = polje[i];
         }
     }
 
-    if (brojac == 0)
-        printf("\nIntervencija s tim ID-em nije pronaƒëena!\n\n");
+    if (noviBroj == brojIntervencija) {
+        printf("ID nije pronaen.\n");
+        free(polje);
+        free(noviPolje);
+        return;
+    }
+
+    FILE* fpTemp = fopen("temp_intervencije.txt", "w");
+    if (!fpTemp) {
+        perror("Greöka pri otvaranju privremene datoteke");
+        free(polje);
+        free(noviPolje);
+        return;
+    }
+
+    fprintf(fpTemp, "%d\n", noviBroj);
+    for (int i = 0; i < noviBroj; i++) {
+        fprintf(fpTemp, "%d|%s|%s|%s|%d|%s|%d|%d\n",
+            noviPolje[i].id, noviPolje[i].vrsta, noviPolje[i].datum, noviPolje[i].vrijeme,
+            noviPolje[i].trajanje, noviPolje[i].lokacija, noviPolje[i].brojVatrogasaca, noviPolje[i].brojVozila);
+    }
+    fclose(fpTemp);
+
+    // Brisanje originalne i preimenovanje temp datoteke
+    if (remove("intervencije.txt") != 0) {
+        perror("Greöka pri brisanju originalne datoteke");
+    }
+    else if (rename("temp_intervencije.txt", "intervencije.txt") != 0) {
+        perror("Greöka pri preimenovanju datoteke");
+    }
+    else {
+        printf("Intervencija uspjeöno obrisana.\n");
+    }
+
+    free(polje);
+    free(noviPolje);
+}
+
+
+
+void pretraga_po_ID(INTERVENCIJE* polje, int broj) {
+    int id;
+    printf("Unesite ID: ");
+    scanf("%d", &id);
+
+    for (int i = 0; i < broj; i++) {
+        if (polje[i].id == id) {
+            printf("Pronaena intervencija: %s (%d min)\n", polje[i].vrsta, polje[i].trajanje);
+            return;
+        }
+    }
+
+    printf("Intervencija nije pronaena.\n");
 }
 
 void pretraga_po_vrsti(INTERVENCIJE* polje, int broj) {
-    char trazena_vrsta[50];
-    int brojac = 0;
-    printf("Upisi vrstu intervenciju koju zelis pronaci:\n");
-    fgets(trazena_vrsta, sizeof(trazena_vrsta), stdin);
-    trazena_vrsta[strcspn(trazena_vrsta, "\n")] = 0;
+    char vrsta[50];
+    printf("Unesite vrstu: ");
+    fgets(vrsta, sizeof(vrsta), stdin);
+    vrsta[strcspn(vrsta, "\n")] = 0;
+
+    int found = 0;
+    for (int i = 0; i < broj; i++) {
+#ifdef _WIN32
+        if (_stricmp(polje[i].vrsta, vrsta) == 0) {
+#else
+        if (strcasecmp(polje[i].vrsta, vrsta) == 0) {
+#endif
+            printf("ID: %d | Lokacija: %s | Trajanje: %d min\n", polje[i].id, polje[i].lokacija, polje[i].trajanje);
+            found = 1;
+        }
+        }
+
+    if (!found)
+        printf("Nema pronaenih intervencija te vrste.\n");
+    }
+
+void pretraga_po_lokaciji(INTERVENCIJE * polje, int broj) {
+    char lokacija[50];
+    printf("Unesite lokaciju: ");
+    fgets(lokacija, sizeof(lokacija), stdin);
+    // uklanjamo znak novog reda na kraju unosa
+    lokacija[strcspn(lokacija, "\n")] = 0;
+
+    int found = 0; // varijabla za praÊenje jesmo li neöto naöli
 
     for (int i = 0; i < broj; i++) {
-        if (strcmp(trazena_vrsta, polje[i].vrsta) == 0) {
-            printf("\nVrsta intervencije je pronaƒëena!\n\n");
-            printf("ID: %d\tVrsta: %s\tDatum: %s\tVrijeme: %s\tTrajanje: %d min\tLokacija: %s\tBroj vatrogasaca: %d\tBroj vozila: %d\n\n",
-                polje[i].id,
-                polje[i].vrsta,
-                polje[i].datum,
-                polje[i].vrijeme,
-                polje[i].trajanje,
-                polje[i].lokacija,
-                polje[i].brojVatrogasaca,
-                polje[i].brojVozila);
-            brojac++;
+        // usporeujemo lokaciju unesenu s lokacijom u polju (osjetljivo na velika/mala slova)
+        if (strcmp(polje[i].lokacija, lokacija) == 0) {
+            printf("ID: %d | Vrsta: %s | Trajanje: %d min\n",
+                polje[i].id, polje[i].vrsta, polje[i].trajanje);
+            found = 1; 
         }
     }
-    if (brojac == 0)
-        printf("\nVrsta intervencije nije pronaƒëena!\n\n");
-}
 
-void pretraga_po_lokaciji(INTERVENCIJE* polje, int broj) {
-    char trazena_lokacija[50];
-    int brojac = 0;
-    printf("Upisi lokaciju intervencije koju zelis pronaci:\n");
-    fgets(trazena_lokacija, sizeof(trazena_lokacija), stdin);
-    trazena_lokacija[strcspn(trazena_lokacija, "\n")] = 0;
-
-    for (int i = 0; i < broj; i++) {
-        if (strcmp(trazena_lokacija, polje[i].lokacija) == 0) {
-            printf("\nIntervencija na trazenoj lokaciji je pronadena!\n\n");
-            printf("ID: %d\tVrsta: %s\tDatum: %s\tVrijeme: %s\tTrajanje: %d min\tLokacija: %s\tBroj vatrogasaca: %d\tBroj vozila: %d\n\n",
-                polje[i].id,
-                polje[i].vrsta,
-                polje[i].datum,
-                polje[i].vrijeme,
-                polje[i].trajanje,
-                polje[i].lokacija,
-                polje[i].brojVatrogasaca,
-                polje[i].brojVozila);
-            brojac++;
-        }
+    if (!found) {
+        printf("Nema pronaenih intervencija na toj lokaciji.\n");
     }
-    if (brojac == 0)
-        printf("\nNa lokaciji %s nije pronadena nijedna intervencija.\n\n", trazena_lokacija);
 }
 
-void zamjena(INTERVENCIJE* a, INTERVENCIJE* b) {
-    INTERVENCIJE tmp = *a;
+static inline void zamjena(INTERVENCIJE* a, INTERVENCIJE* b) {
+    INTERVENCIJE temp = *a;
     *a = *b;
-    *b = tmp;
+    *b = temp;
+}
+
+int usporediTrajanje(const void* a, const void* b) {
+    const INTERVENCIJE* ia = (const INTERVENCIJE*)a;
+    const INTERVENCIJE* ib = (const INTERVENCIJE*)b;
+    return ia->trajanje - ib->trajanje;
 }
 
 void sortiranje_po_trajanju(INTERVENCIJE* polje, int broj) {
-    if (broj <= 1) return;
+    qsort(polje, broj, sizeof(INTERVENCIJE), usporediTrajanje);
 
-    for (int i = 0; i < broj - 1; i++) {
-        int minIndeks = i;
-        for (int j = i + 1; j < broj; j++) {
-            if (polje[j].trajanje < polje[minIndeks].trajanje) {
-                minIndeks = j;
-            }
+    printf("--- Sortirane intervencije po trajanju ---\n");
+    for (int i = 0; i < broj; i++) {
+        printf("ID: %d | Trajanje: %d min | Vrsta: %s\n",
+            polje[i].id, polje[i].trajanje, polje[i].vrsta);
+    }
+}
+void obrisi_datoteku() {
+    char potvrda;
+
+    printf("Jeste li sigurni da zelite obrisati datoteku 'intervencije.txt'? (D/N): ");
+    scanf(" %c", &potvrda);
+
+    if (potvrda == 'D' || potvrda == 'd') {
+        if (remove("intervencije.txt") == 0) {
+            printf("Datoteka je uspjesno obrisana.\n");
         }
-        if (minIndeks != i) {
-            zamjena(&polje[i], &polje[minIndeks]);
+        else {
+            perror("Greska pri brisanju datoteke");
         }
     }
-
-    printf("\nINTERVENCIJE SORTIRANE PO TRAJANJU (od najkrace do najduze)\n");
-    for (int i = 0; i < broj; i++) {
-        printf("ID: %d\tVrsta: %s\tDatum: %s\tVrijeme: %s\tTrajanje: %d min\tLokacija: %s\tBroj vatrogasaca: %d\tBroj vozila: %d\n",
-            polje[i].id,
-            polje[i].vrsta,
-            polje[i].datum,
-            polje[i].vrijeme,
-            polje[i].trajanje,
-            polje[i].lokacija,
-            polje[i].brojVatrogasaca,
-            polje[i].brojVozila);
+    else {
+        printf("Brisanje datoteke je otkazano.\n");
     }
 }

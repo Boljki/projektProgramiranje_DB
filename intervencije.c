@@ -69,11 +69,12 @@ int izbornik() {
             break;
         case 8:
             printf("Izlazak iz programa.\n");
+			exit(0);    
             break;
         default:
             printf("Nepoznata opcija.\n");
         }
-    } while (uvjet != 7);
+    } while (uvjet != 8);
 
     return 0;
 }

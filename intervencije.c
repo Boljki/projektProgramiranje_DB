@@ -159,68 +159,45 @@ INTERVENCIJE* ucitaj_intervencije(int* brojOut) {
         return NULL;
     }
 
-    if (fscanf(fp, "%d\n", brojOut) != 1) {
+    if (fscanf(fp, "%d\n", brojOut) != 1 || *brojOut <= 0) {
         *brojOut = 0;
-        fclose(fp);
-        return NULL;
-    }
-
-    if (*brojOut == 0) {
         fclose(fp);
         return NULL;
     }
 
     INTERVENCIJE* polje = malloc(*brojOut * sizeof(INTERVENCIJE));
     if (!polje) {
-        perror("Alokacija memorije neuspjesna");
+        perror("Alokacija memorije neuspješna");
         fclose(fp);
         *brojOut = 0;
         return NULL;
     }
 
     for (int i = 0; i < *brojOut; i++) {
-        char buffer[256];
-        if (!fgets(buffer, sizeof(buffer), fp)) {
+        char linija[256];
+
+        if (!fgets(linija, sizeof(linija), fp)) {
             *brojOut = i;
             break;
         }
 
-        // Format: id|vrsta|datum|vrijeme|trajanje|lokacija|brojVatrogasaca|brojVozila
-        char* token = strtok(buffer, "|");
-        if (!token) continue;
-        polje[i].id = atoi(token);
-
-        token = strtok(NULL, "|");
-        if (token) strncpy(polje[i].vrsta, token, sizeof(polje[i].vrsta));
-
-        token = strtok(NULL, "|");
-        if (token) strncpy(polje[i].datum, token, sizeof(polje[i].datum));
-
-        token = strtok(NULL, "|");
-        if (token) strncpy(polje[i].vrijeme, token, sizeof(polje[i].vrijeme));
-
-        token = strtok(NULL, "|");
-        if (token) polje[i].trajanje = atoi(token);
-
-        token = strtok(NULL, "|");
-        if (token) strncpy(polje[i].lokacija, token, sizeof(polje[i].lokacija));
-
-        token = strtok(NULL, "|");
-        if (token) polje[i].brojVatrogasaca = atoi(token);
-
-        token = strtok(NULL, "|");
-        if (token) polje[i].brojVozila = atoi(token);
-
-        // Ukloni newline znakove s kraja stringova
-        polje[i].vrsta[strcspn(polje[i].vrsta, "\n")] = 0;
-        polje[i].datum[strcspn(polje[i].datum, "\n")] = 0;
-        polje[i].vrijeme[strcspn(polje[i].vrijeme, "\n")] = 0;
-        polje[i].lokacija[strcspn(polje[i].lokacija, "\n")] = 0;
+        // Èitamo podatke iz reda koristeæi sscanf
+        sscanf(linija, "%d|%19[^|]|%11[^|]|%9[^|]|%d|%49[^|]|%d|%d",
+            &polje[i].id,
+            polje[i].vrsta,
+            polje[i].datum,
+            polje[i].vrijeme,
+            &polje[i].trajanje,
+            polje[i].lokacija,
+            &polje[i].brojVatrogasaca,
+            &polje[i].brojVozila
+        );
     }
 
     fclose(fp);
     return polje;
 }
+
 
 void azuriraj_intervenciju() {
     int brojIntervencija;

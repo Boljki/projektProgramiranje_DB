@@ -23,6 +23,7 @@ void kreirajdatoteku();
 void dodaj_intervenciju();
 void azuriraj_intervenciju();
 void ispis_intervencije();
+void rekurzivni_ispis(INTERVENCIJE* niz, int n);
 void brisanje_intervencije();
 void pretraga_po_ID(INTERVENCIJE* polje, int broj);
 void pretraga_po_vrsti(INTERVENCIJE* polje, int broj);
@@ -30,6 +31,7 @@ void pretraga_po_lokaciji(INTERVENCIJE* polje, int broj);
 void sortiranje_po_trajanju(INTERVENCIJE* polje, int broj); // od najkraæe do najduže
 void zamjena(INTERVENCIJE* a, INTERVENCIJE* b);
 void obrisi_datoteku();
+void oslobodi_memoriju(INTERVENCIJE* polje);
 INTERVENCIJE* ucitaj_intervencije(int* broj);
 
 extern int broj; // deklaracija globalne varijable broj (broj intervencija)

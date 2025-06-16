@@ -297,6 +297,22 @@ void azuriraj_intervenciju() {
     free(polje);
 }
 
+void rekurzivni_ispis(INTERVENCIJE* polje, int n) {
+    if (n <= 0) return;
+
+    rekurzivni_ispis(polje, n - 1);
+
+    printf("\nIntervencija #%d\n", n);
+    printf("ID: %d\n", polje[n - 1].id);
+    printf("Vrsta: %s\n", polje[n - 1].vrsta);
+    printf("Datum: %s\n", polje[n - 1].datum);
+    printf("Vrijeme: %s\n", polje[n - 1].vrijeme);
+    printf("Trajanje: %d min\n", polje[n - 1].trajanje);
+    printf("Lokacija: %s\n", polje[n - 1].lokacija);
+    printf("Broj vatrogasaca: %d\n", polje[n - 1].brojVatrogasaca);
+    printf("Broj vozila: %d\n", polje[n - 1].brojVozila);
+}
+
 void ispis_intervencije() {
     INTERVENCIJE* polje = ucitaj_intervencije(&broj);
     if (!polje) {
@@ -304,15 +320,11 @@ void ispis_intervencije() {
         return;
     }
 
-    for (int i = 0; i < broj; i++) {
-        printf("\n--- Intervencija #%d ---\n", i + 1);
-        printf("ID: %d\nVrsta: %s\nDatum: %s\nVrijeme: %s\nTrajanje: %d min\nLokacija: %s\nVatrogasaca: %d\nVozila: %d\n",
-            polje[i].id, polje[i].vrsta, polje[i].datum, polje[i].vrijeme,
-            polje[i].trajanje, polje[i].lokacija, polje[i].brojVatrogasaca, polje[i].brojVozila);
-    }
+    rekurzivni_ispis(polje, broj);
 
     free(polje);
 }
+
 
 void brisanje_intervencije() {
     int brojIntervencija;
@@ -474,5 +486,11 @@ void obrisi_datoteku() {
     }
     else {
         printf("Brisanje datoteke je otkazano.\n");
+    }
+}
+void oslobodi_memoriju(INTERVENCIJE* polje) {
+    if (polje != NULL) {
+        free(polje);
+        polje = NULL; 
     }
 }

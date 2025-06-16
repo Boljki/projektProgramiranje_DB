@@ -422,10 +422,9 @@ void pretraga_po_lokaciji(INTERVENCIJE * polje, int broj) {
     // uklanjamo znak novog reda na kraju unosa
     lokacija[strcspn(lokacija, "\n")] = 0;
 
-    int found = 0; // varijabla za praæenje jesmo li nešto našli
+    int found = 0; 
 
     for (int i = 0; i < broj; i++) {
-        // usporeðujemo lokaciju unesenu s lokacijom u polju (osjetljivo na velika/mala slova)
         if (strcmp(polje[i].lokacija, lokacija) == 0) {
             printf("ID: %d | Vrsta: %s | Trajanje: %d min\n",
                 polje[i].id, polje[i].vrsta, polje[i].trajanje);

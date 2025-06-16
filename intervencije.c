@@ -172,7 +172,7 @@ INTERVENCIJE* ucitaj_intervencije(int* brojOut) {
 
     INTERVENCIJE* polje = malloc(*brojOut * sizeof(INTERVENCIJE));
     if (!polje) {
-        perror("Alokacija memorije neuspješna");
+        perror("Alokacija memorije neuspjesna");
         fclose(fp);
         *brojOut = 0;
         return NULL;
@@ -404,19 +404,16 @@ void pretraga_po_vrsti(INTERVENCIJE* polje, int broj) {
 
     int found = 0;
     for (int i = 0; i < broj; i++) {
-#ifdef _WIN32
-        if (_stricmp(polje[i].vrsta, vrsta) == 0) {
-#else
-        if (strcasecmp(polje[i].vrsta, vrsta) == 0) {
-#endif
+        // Radi obiènu usporedbu bez ignoriranja velikih/malih slova
+        if (strcmp(polje[i].vrsta, vrsta) == 0) {
             printf("ID: %d | Lokacija: %s | Trajanje: %d min\n", polje[i].id, polje[i].lokacija, polje[i].trajanje);
             found = 1;
         }
-        }
+    }
 
     if (!found)
         printf("Nema pronaðenih intervencija te vrste.\n");
-    }
+}
 
 void pretraga_po_lokaciji(INTERVENCIJE * polje, int broj) {
     char lokacija[50];

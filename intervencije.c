@@ -20,13 +20,13 @@ int izbornik() {
         printf("5. Sortiraj po trajanju\n");
         printf("6. Obrisi intervenciju\n");
         printf("7. Obrisi datoteku\n");
-		printf("8. Izlaz\n");
+        printf("8. Izlaz\n");
         printf("Odabir: ");
         scanf("%d", &uvjet);
         getchar();  // ciscenje novog reda iz buffer-a
 
 
-        switch (uvjet) {   
+        switch (uvjet) {
         case 1:
             dodaj_intervenciju();
             break;
@@ -69,7 +69,7 @@ int izbornik() {
             break;
         case 8:
             printf("Izlazak iz programa.\n");
-			exit(0);    
+            exit(0);
             break;
         default:
             printf("Nepoznata opcija.\n");
@@ -148,7 +148,7 @@ void dodaj_intervenciju() {
     fclose(fp);
 
     lokalniBrojac++;  // poveca se svaki put kad se doda nova intervencija
-    printf("Intervencija uspješno dodana. (Lokalno dodano ukupno: %d)\n", lokalniBrojac);
+    printf("Intervencija uspjesno dodana. (Lokalno dodano ukupno: %d)\n", lokalniBrojac);
 }
 
 
@@ -203,13 +203,13 @@ void azuriraj_intervenciju() {
     int brojIntervencija;
     INTERVENCIJE* polje = ucitaj_intervencije(&brojIntervencija);
     if (!polje || brojIntervencija == 0) {
-        printf("Nema intervencija za ažuriranje.\n");
+        printf("Nema intervencija za azuriranje.\n");
         free(polje);
         return;
     }
 
     int id;
-    printf("Unesite ID intervencije za ažuriranje: ");
+    printf("Unesite ID intervencije za azuriranje: ");
     scanf("%d", &id);
     getchar();
 
@@ -251,7 +251,7 @@ void azuriraj_intervenciju() {
     }
 
     if (!found) {
-        printf("Intervencija s ID %d nije pronaðena.\n", id);
+        printf("Intervencija s ID %d nije pronadena.\n", id);
     }
     else {
         FILE* fp = fopen("intervencije.txt", "w");
@@ -268,7 +268,7 @@ void azuriraj_intervenciju() {
                 polje[i].trajanje, polje[i].lokacija, polje[i].brojVatrogasaca, polje[i].brojVozila);
         }
         fclose(fp);
-        printf("Intervencija ažurirana.\n");
+        printf("Intervencija azurirana.\n");
     }
 
     free(polje);
@@ -358,10 +358,10 @@ void brisanje_intervencije() {
         perror("Greška pri brisanju originalne datoteke");
     }
     else if (rename("temp_intervencije.txt", "intervencije.txt") != 0) {
-        perror("Greška pri preimenovanju datoteke");
+        perror("Greska pri preimenovanju datoteke");
     }
     else {
-        printf("Intervencija uspješno obrisana.\n");
+        printf("Intervencija uspjesno obrisana.\n");
     }
 
     free(polje);
@@ -377,12 +377,12 @@ void pretraga_po_ID(INTERVENCIJE* polje, int broj) {
 
     for (int i = 0; i < broj; i++) {
         if (polje[i].id == id) {
-            printf("Pronaðena intervencija: %s (%d min)\n", polje[i].vrsta, polje[i].trajanje);
+            printf("Pronadena intervencija: %s (%d min)\n", polje[i].vrsta, polje[i].trajanje);
             return;
         }
     }
 
-    printf("Intervencija nije pronaðena.\n");
+    printf("Intervencija nije pronadena.\n");
 }
 
 void pretraga_po_vrsti(INTERVENCIJE* polje, int broj) {
@@ -401,28 +401,28 @@ void pretraga_po_vrsti(INTERVENCIJE* polje, int broj) {
     }
 
     if (!found)
-        printf("Nema pronaðenih intervencija te vrste.\n");
+        printf("Nema pronadenih intervencija te vrste.\n");
 }
 
-void pretraga_po_lokaciji(INTERVENCIJE * polje, int broj) {
+void pretraga_po_lokaciji(INTERVENCIJE* polje, int broj) {
     char lokacija[50];
     printf("Unesite lokaciju: ");
     fgets(lokacija, sizeof(lokacija), stdin);
     // uklanjamo znak novog reda na kraju unosa
     lokacija[strcspn(lokacija, "\n")] = 0;
 
-    int found = 0; 
+    int found = 0;
 
     for (int i = 0; i < broj; i++) {
         if (strcmp(polje[i].lokacija, lokacija) == 0) {
             printf("ID: %d | Vrsta: %s | Trajanje: %d min\n",
                 polje[i].id, polje[i].vrsta, polje[i].trajanje);
-            found = 1; 
+            found = 1;
         }
     }
 
     if (!found) {
-        printf("Nema pronaðenih intervencija na toj lokaciji.\n");
+        printf("Nema pronadenih intervencija na toj lokaciji.\n");
     }
 }
 
@@ -468,6 +468,6 @@ void obrisi_datoteku() {
 void oslobodi_memoriju(INTERVENCIJE* polje) {
     if (polje != NULL) {
         free(polje);
-        polje = NULL; 
+        polje = NULL;
     }
 }
